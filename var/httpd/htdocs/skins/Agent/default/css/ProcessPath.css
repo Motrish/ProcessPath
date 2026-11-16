@@ -1,0 +1,38 @@
+/* ProcessPath 0.1.1: scoped styles only. */
+#ProcessPathWidget { margin: 0 0 12px; }
+#ProcessPathWidget .pp-summary {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; cursor: pointer; padding: 11px 13px;
+    background: #f5f7f9; border-bottom: 1px solid transparent;
+    list-style: none; color: #303940;
+}
+#ProcessPathWidget .pp-summary::-webkit-details-marker { display: none; }
+#ProcessPathWidget[open] > .pp-summary { border-bottom-color: #dce3e8; }
+#ProcessPathWidget .pp-summary-label { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+#ProcessPathWidget .pp-summary-label strong { overflow-wrap: anywhere; }
+#ProcessPathWidget .pp-status { font-size: 12px; color: #65717c; }
+#ProcessPathWidget .pp-summary-done { color: #278444; }
+#ProcessPathWidget .pp-chevron { flex: none; color: #64748b; transition: transform 0.15s ease-in-out; }
+#ProcessPathWidget[open] .pp-chevron { transform: rotate(180deg); }
+#ProcessPathWidget .pp-content { padding: 10px 12px 8px; }
+#ProcessPathWidget .pp-scroller { max-width: 100%; overflow-x: auto; overflow-y: auto; outline-offset: -2px; }
+#ProcessPathWidget .pp-graph { display: block; max-width: none; overflow: visible; }
+#ProcessPathWidget .pp-edge { stroke: #adb8c2; stroke-width: 1.8; }
+#ProcessPathWidget .pp-edge-traversed { stroke: #278444; stroke-width: 2.7; }
+#ProcessPathWidget .pp-node-box { fill: #f7f9fb; stroke: #bac5cd; stroke-width: 1.2; }
+#ProcessPathWidget .pp-node-name { fill: #293640; font-size: 12px; font-weight: 500; }
+#ProcessPathWidget .pp-node-subtitle { fill: #607180; font-size: 10px; }
+#ProcessPathWidget .pp-node.pp-completed .pp-node-box { fill: #eaf6ed; stroke: #278444; stroke-width: 1.7; }
+#ProcessPathWidget .pp-node.pp-completed .pp-node-subtitle { fill: #24743a; }
+#ProcessPathWidget .pp-done-circle { fill: #278444; }
+#ProcessPathWidget .pp-done-check { fill: none; stroke: #fff; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+#ProcessPathWidget .pp-node.pp-current .pp-node-box { fill: #e9f2ff; stroke: #1c70d3; stroke-width: 2.4; }
+#ProcessPathWidget .pp-node.pp-current .pp-node-subtitle { fill: #145cae; font-weight: 700; }
+#ProcessPathWidget .pp-active-circle { stroke: #1c70d3; stroke-width: 2; fill: #e9f2ff; }
+#ProcessPathWidget .pp-legend { display: flex; flex-wrap: wrap; gap: 14px; padding-top: 6px; color: #65717c; font-size: 11px; }
+#ProcessPathWidget .pp-legend-active { color: #1c70d3; }
+@media (max-width: 600px) {
+    #ProcessPathWidget .pp-summary { padding: 10px; }
+    #ProcessPathWidget .pp-content { padding: 7px; }
+    #ProcessPathWidget .pp-legend { gap: 9px; }
+}
