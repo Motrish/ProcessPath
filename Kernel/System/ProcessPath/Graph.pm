@@ -203,7 +203,7 @@ sub Build {
     return {
         Name         => $Process->{Name} || 'Process',
         PastNodes    => \@PastNodes,
-        PastColumns  => @PastNodes > 6 ? 6 : scalar @PastNodes,
+        PastCount    => scalar @PastNodes,
         Nodes        => \@RenderedNodes,
         Edges        => \@RenderedEdges,
         Width        => $Width,

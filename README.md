@@ -1,12 +1,12 @@
 # ProcessPath — OTOBO AgentTicketZoom Widget
 
-**Version:** 0.1.2 (erster Test-Release) · **Zielversion:** OTOBO 11.0.x (ab 11.0.13)
+**Version:** 0.1.3 (erster Test-Release) · **Zielversion:** OTOBO 11.0.x (ab 11.0.13)
 
 ProcessPath zeigt in der Agenten-Ticketansicht den aktuellen Prozessschritt und alle von dort aus noch möglichen, nicht bereits abgeschlossenen Prozesszweige. Der aktuelle Schritt ist blau. Erledigte Schritte stehen als schmale, um 90° gedrehte **Textkacheln am linken Rand** (ohne Symbol oder Statusuntertitel). Verlassene, nicht durchlaufene Zweige werden ausgeblendet. Sobald die aktuelle Aktivität kein ausgehendes Übergangsziel mehr hat (Endaktivität), wird das Widget standardmäßig eingeklappt.
 
 ## Installation
 
-1. `ProcessPath-0.1.2.opm` über **Admin → Paketverwaltung** installieren.
+1. `ProcessPath-0.1.3.opm` über **Admin → Paketverwaltung** installieren.
 2. Falls OTOBO es verlangt, SysConfig bereitstellen und Browser-Cache/Loader-Dateien aktualisieren.
 3. Ein Prozessticket in `Action=AgentTicketZoom;TicketID=...` öffnen.
 
@@ -42,4 +42,4 @@ Ergänzende Installations- und Abnahmetests siehe `docs/ADMIN.md`.
 
 ### Aktivitätsnamen
 
-Aktuelle und zukünftige Aktivitäten brechen ihre Beschriftung bei Bedarf über mehrere Zeilen um, ohne Kürzungen. Erledigte Aktivitäten erscheinen links in vertikalen Textkacheln ohne Haken oder Untertitel. Pro Reihe werden maximal sechs solcher Kacheln gezeigt; längere Historien werden in weiteren Reihen dargestellt. Die Breite des restlichen SVG wurde durch kleinere Abstände reduziert.
+Aktuelle und zukünftige Aktivitäten brechen ihre Beschriftung bei Bedarf über mehrere Zeilen um, ohne Kürzungen. Erledigte Aktivitäten erscheinen links in vertikalen Textkacheln ohne Haken oder Untertitel. Erledigte Schritte bleiben ausnahmslos in einer einzigen horizontalen Reihe. Bei Bedarf kann die Leiste separat seitlich gescrollt werden; es gibt keinen Zeilenumbruch. Die Breite des restlichen SVG wurde durch kleinere Abstände reduziert.

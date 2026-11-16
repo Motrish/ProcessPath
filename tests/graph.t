@@ -18,7 +18,7 @@ my $L = $G->Build(Process=>$P,Names=>\%N,ActivityID=>'A3',HistorySteps=>[qw(A1 A
 ok($L,'Graph created');
 ok(!$L->{Completed},'Active process');
 is_deeply([map { $_->{ID} } @{$L->{PastNodes}}],[qw(A1 A2)],'Completed steps in left rail');
-is($L->{PastColumns},2,'Two compact rail columns');
+is($L->{PastCount},2,'Two compact rail columns');
 is_deeply([sort map { $_->{ID} } @{$L->{Nodes}}],[qw(A3 A5)],'Abandoned branch hidden');
 is(scalar @{$L->{Edges}},1,'Only available edge shown');
 my %State = map { $_->{ID} => $_->{State} } @{$L->{Nodes}};
@@ -52,7 +52,7 @@ my @Many = map { 'A'.$_ } (1..20);
 for my $i (0..18) { $Twenty->{Path}{$Many[$i]}{'T'.$i} = {ActivityEntityID=>$Many[$i+1]}; }
 my $LongGraph = $G->Build(Process=>$Twenty,ActivityID=>'A20',HistorySteps=>\@Many);
 is(scalar @{$LongGraph->{PastNodes}},20,'Twenty visited steps retained');
-is($LongGraph->{PastColumns},6,'Completed rail limited to six columns');
+is($LongGraph->{PastCount},20,'All completed steps remain available in one rail');
 is($LongGraph->{Width},0,'Long completed graph not wide');
 my $Fork = {StartActivity=>'S',Path=>{
     S=>{T1=>{ActivityEntityID=>'Left'},T2=>{ActivityEntityID=>'Right'}},

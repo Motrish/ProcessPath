@@ -10,7 +10,7 @@
 
 1. In OTOBO als Administrator anmelden.
 2. **Admin → Paketverwaltung** öffnen.
-3. Paket `ProcessPath-0.1.2.opm` hochladen und installieren.
+3. Paket `ProcessPath-0.1.3.opm` hochladen und installieren.
 4. Gegebenenfalls **Systemkonfiguration** bereitstellen / Loader-Cache regenerieren.
 5. Ein Prozessticket öffnen: `/otobo/index.pl?Action=AgentTicketZoom;TicketID=...`.
 

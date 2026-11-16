@@ -9,9 +9,9 @@
         <span class="pp-chevron" aria-hidden="true"><i class="fa fa-chevron-down"></i></span>
     </summary>
     <div class="pp-content">
-        <div class="pp-flow">
-            [% IF Data.PastColumns %]
-                <div class="pp-past" style="--pp-past-columns: [% Data.PastColumns %]" role="list" aria-label="[% Translate('Visited') | html %]">
+        <div class="pp-flow [% IF Data.Width %]pp-flow-with-graph[% END %]">
+            [% IF Data.PastCount %]
+                <div class="pp-past" tabindex="0" role="list" aria-label="[% Translate('Visited') | html %]">
                     [% FOREACH Step IN Data.PastNodes %]
                         <div class="pp-past-step" role="listitem" title="[% Step.Name | html %]">
                             <span class="pp-past-name">[% Step.Name | html %]</span>
