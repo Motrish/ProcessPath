@@ -1,12 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <otobo_package version="1.0">
   <Name>ProcessPath</Name>
-  <Version>0.1.3</Version>
+  <Version>0.1.4</Version>
   <Framework Minimum="11.0.13">11.0.x</Framework>
   <Vendor>Michael Nehmer | Motrish</Vendor>
   <URL>https://github.com/Motrish/ProcessPath</URL>
   <License>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</License>
-  <ChangeLog>2026-11-16 Version 0.1.3: Keep all completed activity tiles in a single horizontally scrollable row.
+  <ChangeLog>2026-11-16 Version 0.1.4: Configurable per-process visibility via SysConfig selection with process names.
+2026-11-16 Version 0.1.3: Keep all completed activity tiles in a single horizontally scrollable row.
 2026-11-16 Version 0.1.2: Compact rotated history tiles; hide abandoned branches; reduce diagram width.
 2026-11-16 Version 0.1.1: Display full activity names on multiple lines without truncation.
 2026-11-16 Version 0.1.0: First beta with process graph, visit history, and collapsed end activities.</ChangeLog>
@@ -17,6 +18,8 @@
     <File Permission="644" Location="Kernel/Language/de_ProcessPath.pm" />
     <File Permission="644" Location="Kernel/Output/HTML/TicketZoom/ProcessPath.pm" />
     <File Permission="644" Location="Kernel/System/ProcessPath/Graph.pm" />
+    <File Permission="644" Location="Kernel/System/ProcessPath/Visibility.pm" />
+    <File Permission="644" Location="Kernel/System/SysConfig/ValueType/Entity/ProcessPathProcess.pm" />
     <File Permission="644" Location="Kernel/Output/HTML/Templates/Standard/AgentTicketZoom/ProcessPath.tt" />
     <File Permission="644" Location="var/httpd/htdocs/js/ProcessPath.js" />
     <File Permission="644" Location="var/httpd/htdocs/skins/Agent/default/css/ProcessPath.css" />

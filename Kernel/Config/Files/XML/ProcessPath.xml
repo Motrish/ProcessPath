@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <otobo_config version="2.0" init="Config">
+    <Setting Name="ProcessPath::VisibleProcesses" Required="0" Valid="1">
+        <Description Translatable="1">Select the processes that display the ProcessPath widget in AgentTicketZoom. Remove 'All processes' to restrict the widget to the listed processes. An empty list disables ProcessPath for every process.</Description>
+        <Navigation>Frontend::Agent::View::TicketZoom</Navigation>
+        <Value>
+            <Array>
+                <DefaultItem ValueType="Entity" ValueEntityType="ProcessPathProcess"></DefaultItem>
+                <Item>All processes (*)</Item>
+            </Array>
+        </Value>
+    </Setting>
     <Setting Name="Ticket::Frontend::AgentTicketZoom###Widgets###0050-ProcessPath" Required="0" Valid="1">
         <Description Translatable="1">Read-only process path graph on AgentTicketZoom.</Description>
         <Navigation>Frontend::Agent::View::TicketZoom</Navigation>

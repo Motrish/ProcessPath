@@ -6,6 +6,7 @@ use utf8;
 
 use parent 'Kernel::Output::HTML::Base';
 use Kernel::System::ProcessPath::Graph;
+use Kernel::System::ProcessPath::Visibility;
 
 our $ObjectManagerDisabled = 1;
 
@@ -34,6 +35,12 @@ sub Run {
         $ActivityID = $FullTicket{ 'DynamicField_' . $ActivityField } // '';
     }
     return if !$ProcessID || !$ActivityID;
+
+    # Check scope before loading process definitions and complete ticket history.
+    return if !Kernel::System::ProcessPath::Visibility->IsAllowed(
+        ProcessID        => $ProcessID,
+        VisibleProcesses => $ConfigObject->Get('ProcessPath::VisibleProcesses'),
+    );
 
     my $Graph = eval {
         my $ProcessObject = $Kernel::OM->Get('Kernel::System::ProcessManagement::Process');

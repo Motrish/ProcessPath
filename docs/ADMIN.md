@@ -10,11 +10,26 @@
 
 1. In OTOBO als Administrator anmelden.
 2. **Admin → Paketverwaltung** öffnen.
-3. Paket `ProcessPath-0.1.3.opm` hochladen und installieren.
+3. Paket `ProcessPath-0.1.4.opm` hochladen und installieren.
 4. Gegebenenfalls **Systemkonfiguration** bereitstellen / Loader-Cache regenerieren.
 5. Ein Prozessticket öffnen: `/otobo/index.pl?Action=AgentTicketZoom;TicketID=...`.
 
 Die beiden SysConfig-Einträge `Ticket::Frontend::AgentTicketZoom###Widgets###0050-ProcessPath` und `Loader::Module::AgentTicketZoom###050-ProcessPath` müssen aktiviert sein.
+
+
+## Freigabe pro Prozess
+
+1. **Admin → Systemkonfiguration** öffnen.
+2. Nach `ProcessPath::VisibleProcesses` suchen.
+3. Für eine Einschränkung den voreingestellten Eintrag `All processes (*)` löschen.
+4. Über **Eintrag hinzufügen** jeden gewünschten Prozess anhand seines Namens auswählen.
+5. Einstellung speichern und Änderungen **bereitstellen**.
+6. Ein Ticket eines freigegebenen und eines nicht freigegebenen Prozesses öffnen.
+
+Die Einträge speichern `Prozessname [ProcessEntityID]`. Die stabile ID bestimmt
+die Zuordnung, auch wenn der Prozess später umbenannt wird.
+Voreinstellung `All processes (*)` zeigt alle bisherigen Prozesstickets. Eine
+leere Liste blendet das Widget für alle Prozesse aus.
 
 ## Testfälle
 
@@ -27,7 +42,8 @@ Die beiden SysConfig-Einträge `Ticket::Frontend::AgentTicketZoom###Widgets###00
 7. Ticketstatus geschlossen, aber Aktivität hat noch Übergänge: Widget bleibt ausgeklappt.
 8. Prozessticket erneut öffnen: Ein-/Ausklappstatus richtet sich erneut nach aktueller Aktivität.
 9. Mobile Ansicht: Graph ist horizontal scrollbar und bedienbar.
-10. Deinstallation: Widget und Loader-Einträge sind entfernt.
+10. Die Auswahl im SysConfig-Schlüssel zeigt nur freigegebene Prozesse; nicht freigegebene Tickets ohne Widget.
+11. Deinstallation: Widget und Loader-Einträge sind entfernt.
 
 ## Diagnose
 
