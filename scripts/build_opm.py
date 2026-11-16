@@ -18,6 +18,6 @@ for file_el in package.findall('./Filelist/File'):
     file_el.attrib['Encode'] = 'Base64'
     file_el.text = base64.b64encode(file_path.read_bytes()).decode('ascii')
 ET.indent(package, space='  ')
-output = root.parent / 'ProcessPath-0.1.1.opm'
+output = root / ('ProcessPath-' + package.findtext('Version') + '.opm')
 ET.ElementTree(package).write(output, encoding='utf-8', xml_declaration=True)
 print(f'Created: {output} ({output.stat().st_size} bytes)')

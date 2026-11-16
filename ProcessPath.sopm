@@ -1,12 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <otobo_package version="1.0">
   <Name>ProcessPath</Name>
-  <Version>0.1.1</Version>
+  <Version>0.1.2</Version>
   <Framework Minimum="11.0.13">11.0.x</Framework>
   <Vendor>Michael Nehmer | Motrish</Vendor>
   <URL>https://github.com/Motrish/ProcessPath</URL>
   <License>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</License>
-  <ChangeLog>2026-11-16 Version 0.1.1: Display full activity names on multiple lines without truncation.
+  <ChangeLog>2026-11-16 Version 0.1.2: Compact rotated history tiles; hide abandoned branches; reduce diagram width.
+2026-11-16 Version 0.1.1: Display full activity names on multiple lines without truncation.
 2026-11-16 Version 0.1.0: First beta with process graph, visit history, and collapsed end activities.</ChangeLog>
   <Description Lang="en">Read-only process path graph for AgentTicketZoom with current and visited activity highlighting.</Description>
   <Description Lang="de">Prozesspfad in AgentTicketZoom mit Hervorhebung der aktuellen und durchlaufenen Aktivitäten.</Description>

@@ -56,120 +56,132 @@ sub Build {
     my $Current = $Param{ActivityID} // '';
     my $History = $Param{HistorySteps} || [];
 
-    my (%Nodes, %Next, @Edges);
-    $Nodes{$Start} = 1 if $Start;
+    # Build a complete adjacency list for validation and completion detection.
+    my ( %AllNodes, %Next, @AllEdges );
+    $AllNodes{$Start} = 1 if $Start;
     for my $From ( sort keys %{$Paths} ) {
-        $Nodes{$From} = 1;
+        $AllNodes{$From} = 1;
         next unless ref $Paths->{$From} eq 'HASH';
         for my $Transition ( sort keys %{ $Paths->{$From} } ) {
-            my $DestData = $Paths->{$From}{$Transition};
-            next if ref $DestData ne 'HASH';
-            my $To = $DestData->{ActivityEntityID};
-            next if !$To;
-            $Nodes{$To} = 1;
+            my $Target = $Paths->{$From}{$Transition};
+            next unless ref $Target eq 'HASH' && $Target->{ActivityEntityID};
+            my $To = $Target->{ActivityEntityID};
+            $AllNodes{$To} = 1;
             push @{ $Next{$From} }, $To;
-            push @Edges, { From => $From, To => $To, Transition => $Transition };
+            push @AllEdges, { From => $From, To => $To, Transition => $Transition };
         }
     }
-    return unless %Nodes && $Current && $Nodes{$Current};
+    return unless $Current && $AllNodes{$Current};
 
-    # BFS: shortest distance from the initial activity. Cycles do not recur forever.
-    my %Level;
-    my @Queue = $Start && $Nodes{$Start} ? ($Start) : ();
-    $Level{$Start} = 0 if @Queue;
-    while (@Queue) {
-        my $From = shift @Queue;
-        for my $To ( sort @{ $Next{$From} || [] } ) {
-            next if exists $Level{$To};
-            $Level{$To} = $Level{$From} + 1;
-            push @Queue, $To;
+    # Confirm that the current step belongs to a graph path from the start.
+    # Orphaned process activities must not be mistaken for completion.
+    my %FromStart;
+    if ($Start && $AllNodes{$Start}) {
+        my @ToCheck = ($Start);
+        $FromStart{$Start} = 1;
+        while (@ToCheck) {
+            my $ID = shift @ToCheck;
+            for my $To ( @{ $Next{$ID} || [] } ) {
+                next if $FromStart{$To}++;
+                push @ToCheck, $To;
+            }
         }
     }
-    my %Reachable = %Level;
-    # Orphaned graph components still appear so no path is silently hidden.
-    my $Last = 0;
-    for my $Value ( values %Level ) { $Last = $Value if $Value > $Last; }
-    for my $ID ( sort keys %Nodes ) {
-        next if exists $Level{$ID};
-        $Level{$ID} = ++$Last;
+    my $Complete = !( @{ $Next{$Current} || [] } ) && $FromStart{$Current} ? 1 : 0;
+
+    # History order is meaningful: show past activities as narrow, rotated text
+    # tabs at the left. Each activity is shown only once, also after loops.
+    my ( %Past, @PastIDs );
+    for my $ID ( @{$History} ) {
+        next unless defined $ID && $AllNodes{$ID};
+        next if $ID eq $Current && !$Complete;
+        next if $Past{$ID}++;
+        push @PastIDs, $ID;
+    }
+    # At a terminal activity, the last/current activity is also complete.
+    if ($Complete && !$Past{$Current}) {
+        $Past{$Current} = 1;
+        push @PastIDs, $Current;
+    }
+    my @PastNodes = map {
+        { ID => $_, Name => $Names->{$_} || $_ }
+    } @PastIDs;
+
+    # Only display the current activity and future steps reachable without
+    # passing through an already completed activity. Thus abandoned branches
+    # disappear instead of consuming space. A return to an earlier activity
+    # will make its still-available branches visible at that point.
+    my ( %Level, @ToVisit );
+    if (!$Complete) {
+        $Level{$Current} = 0;
+        @ToVisit = ($Current);
+    }
+    while (@ToVisit) {
+        my $ID = shift @ToVisit;
+        for my $To ( sort @{ $Next{$ID} || [] } ) {
+            next if $Past{$To} || exists $Level{$To};
+            $Level{$To} = $Level{$ID} + 1;
+            push @ToVisit, $To;
+        }
     }
 
-    my (%Columns, %Past, %Traversed);
-    for my $Index ( 0 .. $#{$History} ) {
-        my $ID = $History->[$Index];
-        next unless $Nodes{$ID};
-        $Past{$ID} = 1 if $Index < $#{$History};
-        if ($Index) {
-            my $Prev = $History->[$Index - 1];
-            $Traversed{"$Prev\0$ID"} = 1 if defined $Prev;
-        }
-    }
-    for my $ID ( keys %Nodes ) {
+    my %Columns;
+    for my $ID ( keys %Level ) {
         push @{ $Columns{ $Level{$ID} } }, $ID;
     }
-    my $ColCount = 0;
-    my $MaxRows  = 1;
+    my ($MaxRows, $MaxColumn) = (1, 0);
     for my $L ( keys %Columns ) {
-        $ColCount = $L + 1 if $L + 1 > $ColCount;
-        my $Count = @{ $Columns{$L} };
-        $MaxRows = $Count if $Count > $MaxRows;
         @{ $Columns{$L} } = sort {
             ( $Names->{$a} || $a ) cmp ( $Names->{$b} || $b ) || $a cmp $b
         } @{ $Columns{$L} };
+        $MaxRows = @{ $Columns{$L} } if @{ $Columns{$L} } > $MaxRows;
+        $MaxColumn = $L if $L > $MaxColumn;
     }
 
-    # Keep complete activity titles. Extend tile height if titles need more than
-    # the usual two lines; row spacing follows the tallest tile in this graph.
-    my (%WrappedNames, $MaxLines);
+    my ( %WrappedNames, $MaxLines ) = ();
     $MaxLines = 1;
-    for my $ID ( keys %Nodes ) {
+    for my $ID ( keys %Level ) {
         $WrappedNames{$ID} = _WrapName( $Names->{$ID} || $ID );
         my $Count = scalar @{ $WrappedNames{$ID} };
         $MaxLines = $Count if $Count > $MaxLines;
     }
 
-    my $NodeW  = 156;
-    my $NodeH  = 82;
-    my $NeededNodeH = 25 + 16 * ( $MaxLines - 1 ) + 35;
-    $NodeH = $NeededNodeH if $NeededNodeH > $NodeH;
-    my $StepX  = 215;
-    my $StepY  = $NodeH + 28;
-    my $Pad    = 32;
-    my $Width  = ( $ColCount - 1 ) * $StepX + $NodeW + 2 * $Pad;
-    my $Height = ( $MaxRows - 1 ) * $StepY + $NodeH + 2 * $Pad;
-    my (%Coords, @RenderedNodes);
+    my $NodeW  = 144;
+    my $NodeH  = 66;
+    my $NeededNodeH = 20 + 16 * ( $MaxLines - 1 ) + 33;
+    $NodeH = $NeededNodeH if $NodeH < $NeededNodeH;
+    my $StepX = 170;
+    my $StepY = $NodeH + 22;
+    my $Pad   = 18;
+    my $Width  = %Level ? $MaxColumn * $StepX + $NodeW + 2 * $Pad : 0;
+    my $Height = %Level ? ($MaxRows - 1) * $StepY + $NodeH + 2 * $Pad : 0;
 
-    my $Terminal = !( @{ $Next{$Current} || [] } );
-    # An end activity has no outgoing transitions. Closed ticket state alone does not count.
-    my $IsComplete = $Terminal && exists $Reachable{$Current} ? 1 : 0;
-
+    my ( %Coords, @RenderedNodes );
     for my $L ( sort { $a <=> $b } keys %Columns ) {
         my $Rows = $Columns{$L};
-        my $Offset = ( $MaxRows - scalar @{$Rows} ) * $StepY / 2;
+        my $Offset = ( $MaxRows - @{$Rows} ) * $StepY / 2;
         for my $Index ( 0 .. $#{$Rows} ) {
             my $ID = $Rows->[$Index];
-            my $X  = $Pad + $L * $StepX;
-            my $Y  = $Pad + $Offset + $Index * $StepY;
+            my $X = $Pad + $L * $StepX;
+            my $Y = $Pad + $Offset + $Index * $StepY;
             $Coords{$ID} = { X => $X, Y => $Y };
-            my $State = $ID eq $Current ? ( $IsComplete ? 'completed' : 'current' )
-                : $Past{$ID} ? 'completed' : 'pending';
-            my $FullName = $Names->{$ID} || $ID;
             push @RenderedNodes, {
-                ID    => $ID,
-                Name  => $FullName,
-                Lines => $WrappedNames{$ID},
-                X     => $X,
-                Y     => $Y,
-                W     => $NodeW,
-                H     => $NodeH,
-                State => $State,
+                ID        => $ID,
+                Name      => $Names->{$ID} || $ID,
+                Lines     => $WrappedNames{$ID},
+                X         => $X,
+                Y         => $Y,
+                W         => $NodeW,
+                H         => $NodeH,
+                TextX     => $NodeW / 2,
+                State     => $ID eq $Current ? 'current' : 'pending',
                 IsCurrent => $ID eq $Current ? 1 : 0,
             };
         }
     }
 
     my @RenderedEdges;
-    for my $Edge (@Edges) {
+    for my $Edge (@AllEdges) {
         my ( $From, $To ) = @Coords{ $Edge->{From}, $Edge->{To} };
         next if !$From || !$To;
         my ( $X1, $Y1 ) = ( $From->{X} + $NodeW, $From->{Y} + $NodeH / 2 );
@@ -180,26 +192,24 @@ sub Build {
             $Path = "M $X1 $Y1 C $Mid $Y1, $Mid $Y2, $X2 $Y2";
         }
         else {
-            # Backward edges / loops: bend below the nodes.
-            my $Bottom = $Height - 8;
-            my $LX = $X1 + 18;
-            my $RX = $X2 - 18;
+            my $Bottom = $Height - 6;
+            my $LX = $X1 + 12;
+            my $RX = $X2 - 12;
             $Path = "M $X1 $Y1 L $LX $Y1 Q $LX $Bottom, $RX $Bottom Q $RX $Y2, $X2 $Y2";
         }
-        push @RenderedEdges, {
-            Path      => $Path,
-            Traversed => $Traversed{"$Edge->{From}\0$Edge->{To}"} ? 1 : 0,
-        };
+        push @RenderedEdges, { Path => $Path, Traversed => 0 };
     }
 
     return {
-        Name       => $Process->{Name} || 'Process',
-        Nodes      => \@RenderedNodes,
-        Edges      => \@RenderedEdges,
-        Width      => $Width,
-        Height     => $Height,
-        Completed  => $IsComplete,
-        CurrentName => $Names->{$Current} || $Current,
+        Name         => $Process->{Name} || 'Process',
+        PastNodes    => \@PastNodes,
+        PastColumns  => @PastNodes > 6 ? 6 : scalar @PastNodes,
+        Nodes        => \@RenderedNodes,
+        Edges        => \@RenderedEdges,
+        Width        => $Width,
+        Height       => $Height,
+        Completed    => $Complete,
+        CurrentName  => $Names->{$Current} || $Current,
     };
 }
 

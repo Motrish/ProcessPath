@@ -3,82 +3,73 @@ use warnings;
 use utf8;
 use Test::More;
 use FindBin qw($Bin);
-use lib "$Bin/../Kernel/System/ProcessPath/../../..";
+use lib "$Bin/..";
 use Kernel::System::ProcessPath::Graph;
 
-my $Graph = 'Kernel::System::ProcessPath::Graph';
-my $Process = {
-    Name => 'Notebook',
-    StartActivity => 'A1',
-    Path => {
-        A1 => { T1 => { ActivityEntityID => 'A2' } },
-        A2 => { T2 => { ActivityEntityID => 'A3' }, T3 => { ActivityEntityID => 'A4' } },
-        A3 => { T4 => { ActivityEntityID => 'A5' }, T5 => { ActivityEntityID => 'A2' } },
-        A4 => { T6 => { ActivityEntityID => 'A5' } },
-    },
-};
-my %Names = map { $_ => "Activity $_" } qw(A1 A2 A3 A4 A5);
-my $History = [
-    { HistoryType => 'TicketDynamicFieldUpdate', Name => '%%FieldName%%ProcessManagementProcessID%%Value%%P1%%OldValue%%' },
-    { HistoryType => 'TicketDynamicFieldUpdate', Name => '%%FieldName%%ProcessManagementActivityID%%Value%%A1%%OldValue%%' },
-    { HistoryType => 'TicketDynamicFieldUpdate', Name => '%%FieldName%%ProcessManagementActivityID%%Value%%A2%%OldValue%%A1' },
-    { HistoryType => 'TicketDynamicFieldUpdate', Name => '%%FieldName%%ProcessManagementActivityID%%Value%%A3%%OldValue%%A2' },
+my $G = 'Kernel::System::ProcessPath::Graph';
+my $P = { StartActivity => 'A1', Path => {
+    A1 => { T1 => { ActivityEntityID => 'A2' } },
+    A2 => { T2 => { ActivityEntityID => 'A3' }, T3 => { ActivityEntityID => 'A4' } },
+    A3 => { T4 => { ActivityEntityID => 'A5' }, T5 => { ActivityEntityID => 'A2' } },
+    A4 => { T6 => { ActivityEntityID => 'A5' } },
+}};
+my %N = map { $_ => "Activity $_" } qw(A1 A2 A3 A4 A5);
+my $L = $G->Build(Process=>$P,Names=>\%N,ActivityID=>'A3',HistorySteps=>[qw(A1 A2 A3)]);
+ok($L,'Graph created');
+ok(!$L->{Completed},'Active process');
+is_deeply([map { $_->{ID} } @{$L->{PastNodes}}],[qw(A1 A2)],'Completed steps in left rail');
+is($L->{PastColumns},2,'Two compact rail columns');
+is_deeply([sort map { $_->{ID} } @{$L->{Nodes}}],[qw(A3 A5)],'Abandoned branch hidden');
+is(scalar @{$L->{Edges}},1,'Only available edge shown');
+my %State = map { $_->{ID} => $_->{State} } @{$L->{Nodes}};
+is($State{A3},'current','Current blue');
+is($State{A5},'pending','Future neutral');
+my $Initial = $G->Build(Process=>$P,ActivityID=>'A1',HistorySteps=>['A1']);
+is(scalar @{$Initial->{PastNodes}},0,'No completed steps initially');
+is(scalar @{$Initial->{Nodes}},5,'All possibilities initially visible');
+is(scalar @{$Initial->{Edges}},6,'All initial paths visible');
+my $End = $G->Build(Process=>$P,ActivityID=>'A5',HistorySteps=>[qw(A1 A2 A3 A5)]);
+ok($End->{Completed},'Terminal step is complete');
+is_deeply([map { $_->{ID} } @{$End->{PastNodes}}],[qw(A1 A2 A3 A5)],'Only traversed steps after completion');
+is(scalar @{$End->{Nodes}},0,'No future activities after completion');
+is($End->{Width},0,'End graph has zero SVG width');
+my $Loop = $G->Build(Process=>$P,ActivityID=>'A2',HistorySteps=>[qw(A1 A2 A3 A2)]);
+is_deeply([map { $_->{ID} } @{$Loop->{PastNodes}}],[qw(A1 A3)],'Return loop has no duplicate current');
+is_deeply([sort map { $_->{ID} } @{$Loop->{Nodes}}],[qw(A2 A4 A5)],'Available branch shown after return');
+my %Long = %N;
+$Long{A2} = 'Freigabe der Notebookausgabe';
+$Long{A3} = 'Pruefung und Dokumentation der Ausgabe und Rueckgabe';
+$Long{A5} = 'AussergewoehnlichLangesEinzelwortOhneLeerzeichen';
+my $Names = $G->Build(Process=>$P,Names=>\%Long,ActivityID=>'A3',HistorySteps=>[qw(A1 A2 A3)]);
+is($Names->{PastNodes}[1]{Name},$Long{A2},'Rotated full label retained');
+my %Nodes = map { $_->{ID} => $_ } @{$Names->{Nodes}};
+ok(scalar @{$Nodes{A3}{Lines}} > 2,'Long current label wraps');
+is(join(' ',@{$Nodes{A3}{Lines}}),$Long{A3},'No word truncation');
+is(join('',@{$Nodes{A5}{Lines}}),$Long{A5},'Long single word preserved');
+ok($Nodes{A3}{H} > 66,'Future tile height grows');
+my $Twenty = {StartActivity=>'A1',Path=>{}};
+my @Many = map { 'A'.$_ } (1..20);
+for my $i (0..18) { $Twenty->{Path}{$Many[$i]}{'T'.$i} = {ActivityEntityID=>$Many[$i+1]}; }
+my $LongGraph = $G->Build(Process=>$Twenty,ActivityID=>'A20',HistorySteps=>\@Many);
+is(scalar @{$LongGraph->{PastNodes}},20,'Twenty visited steps retained');
+is($LongGraph->{PastColumns},6,'Completed rail limited to six columns');
+is($LongGraph->{Width},0,'Long completed graph not wide');
+my $Fork = {StartActivity=>'S',Path=>{
+    S=>{T1=>{ActivityEntityID=>'Left'},T2=>{ActivityEntityID=>'Right'}},
+    Left=>{T3=>{ActivityEntityID=>'End'}},
+    Right=>{T4=>{ActivityEntityID=>'End'}},
+}};
+my $Before = $G->Build(Process=>$Fork,ActivityID=>'S',HistorySteps=>['S']);
+is_deeply([sort map { $_->{ID} } @{$Before->{Nodes}}],[qw(End Left Right S)],'All branches before decision');
+my $After = $G->Build(Process=>$Fork,ActivityID=>'Left',HistorySteps=>[qw(S Left)]);
+is_deeply([sort map { $_->{ID} } @{$After->{Nodes}}],[qw(End Left)],'Skip alternative after decision');
+my $Events = [
+    {HistoryType=>'TicketDynamicFieldUpdate',Name=>'%%FieldName%%ProcessManagementProcessID%%Value%%P1%%OldValue%%'},
+    {HistoryType=>'TicketDynamicFieldUpdate',Name=>'%%FieldName%%ProcessManagementActivityID%%Value%%A1%%OldValue%%'},
+    {HistoryType=>'TicketDynamicFieldUpdate',Name=>'%%FieldName%%ProcessManagementActivityID%%Value%%A2%%OldValue%%A1'},
 ];
-my %Arg = (History=>$History, ProcessField=>'ProcessManagementProcessID', ActivityField=>'ProcessManagementActivityID', ProcessID=>'P1');
-my $Steps = $Graph->HistorySteps(%Arg, ActivityID => 'A3');
-is_deeply($Steps, [qw(A1 A2 A3)], 'Correct history sequence');
-my $Layout = $Graph->Build(Process=>$Process,Names=>\%Names,ActivityID=>'A3',HistorySteps=>$Steps);
-ok($Layout, 'Graph generated');
-is(scalar @{ $Layout->{Nodes} },5,'All branch and merge nodes are shown');
-is(scalar @{ $Layout->{Edges} },6,'All graph edges including cycle are included');
-ok(!$Layout->{Completed},'Active step with outgoing transitions is not complete');
-my %States = map { $_->{ID} => $_->{State} } @{ $Layout->{Nodes} };
-is($States{A1},'completed','Past A1 completed');
-is($States{A2},'completed','Past A2 completed');
-is($States{A3},'current','A3 highlighted current');
-is($States{A4},'pending','Other branch pending');
-is($States{A5},'pending','Terminal step not yet visited');
-is(scalar(grep { $_->{Traversed} } @{ $Layout->{Edges} }),2,'Only observed edges are green');
-my $Final = $Graph->Build(Process=>$Process, Names=>\%Names, ActivityID=>'A5',HistorySteps=>[qw(A1 A2 A3 A5)]);
-ok($Final->{Completed},'Terminal activity closes process path');
-my %FinalStates = map { $_->{ID} => $_->{State} } @{ $Final->{Nodes} };
-is($FinalStates{A5},'completed','Final activity gets green check');
-is($FinalStates{A4},'pending','Alternative branch still pending');
-my $Cycle = $Graph->Build(Process=>$Process,Names=>\%Names,ActivityID=>'A2',HistorySteps=>[qw(A1 A2 A3 A2)]);
-is(scalar @{ $Cycle->{Nodes} },5,'Cycle does not duplicate nodes');
-is(scalar(grep { $_->{Traversed} } @{ $Cycle->{Edges} }),3,'Cycle transitions correctly highlighted');
-my $NewHistory = [
-    @{$History},
-    { HistoryType=>'TicketDynamicFieldUpdate',Name=>'%%FieldName%%ProcessManagementProcessID%%Value%%P2%%OldValue%%P1' },
-    { HistoryType=>'TicketDynamicFieldUpdate',Name=>'%%FieldName%%ProcessManagementActivityID%%Value%%B1%%OldValue%%A3' },
-    { HistoryType=>'TicketDynamicFieldUpdate',Name=>'%%FieldName%%ProcessManagementProcessID%%Value%%P1%%OldValue%%P2' },
-    { HistoryType=>'TicketDynamicFieldUpdate',Name=>'%%FieldName%%ProcessManagementActivityID%%Value%%A2%%OldValue%%B1' },
-];
-is_deeply($Graph->HistorySteps(%Arg,History=>$NewHistory,ActivityID=>'A2'),['A2'],'Old process runs are not green after new assignment');
-is_deeply($Graph->HistorySteps(%Arg,History=>[],ActivityID=>'A2'),['A2'],'Current activity alone is enough to render');
-my $Empty = $Graph->Build(Process=>$Process,Names=>\%Names,ActivityID=>'Bad',HistorySteps=>[]);
-ok(!defined $Empty,'Invalid current activity yields no graph');
-
-my $OrphanProcess = { StartActivity=>'A1', Path=>{ A1=>{T1=>{ActivityEntityID=>'A2'}}, A9=>{} } };
-my $Orphan = $Graph->Build(Process=>$OrphanProcess,Names=>\%Names,ActivityID=>'A9',HistorySteps=>['A9']);
-ok(!$Orphan->{Completed},'Unreachable orphan activity not treated as completed');
-
-
-# Full labels must wrap without ellipses; height grows for more than two lines.
-my %LongNames = %Names;
-$LongNames{A2} = 'Freigabe der Notebookausgabe';
-$LongNames{A3} = 'Pruefung und Dokumentation der Ausgabe und Rueckgabe';
-$LongNames{A4} = 'AussergewoehnlichLangesEinzelwortOhneLeerzeichen';
-my $LongGraph = $Graph->Build(Process=>$Process,Names=>\%LongNames,ActivityID=>'A3',HistorySteps=>[qw(A1 A2 A3)]);
-my %LongNode = map { $_->{ID} => $_ } @{ $LongGraph->{Nodes} };
-is(scalar @{ $LongNode{A2}->{Lines} }, 2, 'Two-line activity title is fully wrapped');
-is(join(' ', @{ $LongNode{A2}->{Lines} }), $LongNames{A2}, 'Two lines preserve whole activity title');
-ok(scalar @{ $LongNode{A3}->{Lines} } > 2, 'Titles beyond two lines remain visible');
-is(join(' ', @{ $LongNode{A3}->{Lines} }), $LongNames{A3}, 'Long title preserved without truncation');
-is(join('', @{ $LongNode{A4}->{Lines} }), $LongNames{A4}, 'Single very long word is not truncated');
-like(join('', map { join('', @{ $_->{Lines} }) } @{ $LongGraph->{Nodes} }), qr/EinzelwortOhneLeerzeichen/, 'No ellipsis hides long words');
-ok($LongNode{A3}->{H} > 82, 'Node grows vertically when additional lines are needed');
-my $BottomNameLine = 25 + 16 * (scalar @{ $LongNode{A3}->{Lines} } - 1);
-ok($BottomNameLine < $LongNode{A3}->{H} - 18, 'Last label line does not overlap status marker');
-
+is_deeply($G->HistorySteps(History=>$Events,ProcessField=>'ProcessManagementProcessID',ActivityField=>'ProcessManagementActivityID',ProcessID=>'P1',ActivityID=>'A3'),[qw(A1 A2 A3)],'History tracks actual steps');
+my $Orphan = $G->Build(Process=>{StartActivity=>'A1',Path=>{A1=>{T1=>{ActivityEntityID=>'A2'}},A9=>{}}},ActivityID=>'A9',HistorySteps=>['A9']);
+ok(!$Orphan->{Completed},'Orphan terminal not counted complete');
+ok(!defined($G->Build(Process=>$P,ActivityID=>'Missing',HistorySteps=>[])),'Invalid activity rejected');
 done_testing();

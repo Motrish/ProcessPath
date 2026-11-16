@@ -1,4 +1,4 @@
-[%# ProcessPath: read-only process graph for AgentTicketZoom. %]
+[%# ProcessPath: compact read-only graph in AgentTicketZoom. %]
 <details id="ProcessPathWidget" class="ProcessPathWidget WidgetSimple DontPrint" [% IF !Data.Completed %]open="open"[% END %]>
     <summary class="pp-summary">
         <span class="pp-summary-label">
@@ -9,37 +9,38 @@
         <span class="pp-chevron" aria-hidden="true"><i class="fa fa-chevron-down"></i></span>
     </summary>
     <div class="pp-content">
-        <div class="pp-scroller" role="region" aria-label="[% Translate('Process graph') | html %]" tabindex="0">
-            <svg class="pp-graph" xmlns="http://www.w3.org/2000/svg" width="[% Data.Width %]" height="[% Data.Height %]" viewBox="0 0 [% Data.Width %] [% Data.Height %]" role="img" aria-label="[% Translate('Process path') | html %]: [% Data.Name | html %]">
-                [% FOREACH Edge IN Data.Edges %]
-                    <path d="[% Edge.Path | html %]" class="pp-edge [% IF Edge.Traversed %]pp-edge-traversed[% END %]" fill="none"/>
-                [% END %]
-                [% FOREACH Node IN Data.Nodes %]
-                    <g class="pp-node pp-[% Node.State | html %]" transform="translate([% Node.X %],[% Node.Y %])">
-                        <title>[% Node.Name | html %] [% IF Node.IsCurrent %]([% Translate('Current activity') | html %])[% END %]</title>
-                        <rect class="pp-node-box" width="[% Node.W %]" height="[% Node.H %]" rx="8" ry="8"/>
-                        [% FOREACH Line IN Node.Lines %]
-                            <text x="78" y="[% 25 + loop.index * 16 %]" class="pp-node-name" text-anchor="middle">[% Line | html %]</text>
+        <div class="pp-flow">
+            [% IF Data.PastColumns %]
+                <div class="pp-past" style="--pp-past-columns: [% Data.PastColumns %]" role="list" aria-label="[% Translate('Visited') | html %]">
+                    [% FOREACH Step IN Data.PastNodes %]
+                        <div class="pp-past-step" role="listitem" title="[% Step.Name | html %]">
+                            <span class="pp-past-name">[% Step.Name | html %]</span>
+                        </div>
+                    [% END %]
+                </div>
+            [% END %]
+            [% IF Data.Width %]
+                <div class="pp-scroller" role="region" aria-label="[% Translate('Process graph') | html %]" tabindex="0">
+                    <svg class="pp-graph" xmlns="http://www.w3.org/2000/svg" width="[% Data.Width %]" height="[% Data.Height %]" viewBox="0 0 [% Data.Width %] [% Data.Height %]" role="img" aria-label="[% Translate('Process path') | html %]: [% Data.Name | html %]">
+                        [% FOREACH Edge IN Data.Edges %]
+                            <path d="[% Edge.Path | html %]" class="pp-edge" fill="none"/>
                         [% END %]
-                        [% IF Node.State == 'completed' %]
-                            <circle cx="14" cy="[% Node.H - 18 %]" r="8" class="pp-done-circle"/>
-                            <path d="M10 [% Node.H - 18 %] l3 3 l5 -6" class="pp-done-check"/>
-                        [% ELSIF Node.State == 'current' %]
-                            <circle cx="14" cy="[% Node.H - 18 %]" r="6" class="pp-active-circle"/>
+                        [% FOREACH Node IN Data.Nodes %]
+                            <g class="pp-node pp-[% Node.State | html %]" transform="translate([% Node.X %],[% Node.Y %])">
+                                <title>[% Node.Name | html %] [% IF Node.IsCurrent %]([% Translate('Current activity') | html %])[% END %]</title>
+                                <rect class="pp-node-box" width="[% Node.W %]" height="[% Node.H %]" rx="6" ry="6"/>
+                                [% FOREACH Line IN Node.Lines %]
+                                    <text x="[% Node.TextX %]" y="[% 20 + loop.index * 16 %]" class="pp-node-name" text-anchor="middle">[% Line | html %]</text>
+                                [% END %]
+                                [% IF Node.IsCurrent %]
+                                    <circle cx="12" cy="[% Node.H - 15 %]" r="5" class="pp-active-circle"/>
+                                    <text x="24" y="[% Node.H - 11 %]" class="pp-node-subtitle">[% Translate('Current') | html %]</text>
+                                [% END %]
+                            </g>
                         [% END %]
-                        [% IF Node.IsCurrent && !Data.Completed %]
-                            <text x="28" y="[% Node.H - 14 %]" class="pp-node-subtitle">[% Translate('Current') | html %]</text>
-                        [% ELSIF Node.State == 'completed' %]
-                            <text x="28" y="[% Node.H - 14 %]" class="pp-node-subtitle">[% Translate('Visited') | html %]</text>
-                        [% END %]
-                    </g>
-                [% END %]
-            </svg>
-        </div>
-        <div class="pp-legend" aria-hidden="true">
-            <span><i class="fa fa-check-circle pp-summary-done"></i> [% Translate('Visited') | html %]</span>
-            <span><i class="fa fa-circle-o pp-legend-active"></i> [% Translate('Current') | html %]</span>
-            <span><i class="fa fa-circle-o"></i> [% Translate('Not visited') | html %]</span>
+                    </svg>
+                </div>
+            [% END %]
         </div>
     </div>
 </details>
